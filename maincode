@@ -1,0 +1,75 @@
+import numpy as np
+import cv2
+from matplotlib import pyplot as plt
+import os
+from skimage import io
+from skimage.color import rgb2gray
+from google.colab.patches import cv2_imshow
+from numpy.linalg import svd
+from PIL import Image
+origem = "https://i.pinimg.com/564x/c3/ed/a7/c3eda7e17f80d5fc7f1db32eb82edc59.jpg"
+image = io.imread(origem) 
+img = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+def compress_image(img_name, img, k):
+    print("processando...")
+
+
+    r = img[:, :, 0]  # Vetor R
+    g = img[:, :, 1]  # Vetor G
+    b = img[:, :, 2]  # Vetor B
+
+    print("comprimindo...")
+
+
+    ur, sr, vr = svd(r, full_matrices=False)
+    ug, sg, vg = svd(g, full_matrices=False)
+    ub, sb, vb = svd(b, full_matrices=False)
+
+    print('dimensões do canal r: {}'.format(r.shape))
+
+    rr = np.dot(ur[:, :k], np.dot(np.diag(sr[:k]), vr[:k, :]))
+    rg = np.dot(ug[:, :k], np.dot(np.diag(sg[:k]), vg[:k, :]))
+    rb = np.dot(ub[:, :k], np.dot(np.diag(sb[:k]), vb[:k, :]))
+
+    print("arranjando...")
+
+    
+    rimg = np.zeros(img.shape)
+
+    #adicionando matriz para R, G & B
+    rimg[:, :, 0] = rr
+    rimg[:, :, 1] = rg
+    rimg[:, :, 2] = rb
+
+
+    for ind1, row in enumerate(rimg):
+        for ind2, col in enumerate(row):
+            for ind3, value in enumerate(col):
+                if value < 0:
+                    rimg[ind1, ind2, ind3] = abs(value)
+                if value > 255:
+                    rimg[ind1, ind2, ind3] = 255
+
+  
+    compressed_image = rimg.astype(np.uint8)
+
+    plt.title("Goofy - figura compactada: " + img_name + "\n")
+    plt.imshow(compressed_image)
+    plt.axis('off')
+    plt.show()
+    cv2.imwrite("Imagem/comp-" + str(img_name) + ".jpg", compressed_image)
+    
+k = np.rint(0.8*512) #80% de 512
+print(k) 
+k = 410
+compress_image("foto", image, k)
+
+k = np.rint(0.7*512) #70% de 512
+print(k) 
+k = 358
+compress_image("foto", image, k)
+
+k = np.rint(0.6*512) #60% de 512
+print(k) 
+k = 307
+compress_image("foto", image, k)
